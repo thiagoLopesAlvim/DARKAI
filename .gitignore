@@ -1,0 +1,63 @@
+# Ambiente Virtual
+venv/
+.venv/
+env/
+
+# Arquivos de Configuração Sensíveis
+.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Output temporário e gerado
+output/audios/*
+output/timestamps/*
+output/videos/*
+output/roteiros/*
+!output/**/.gitkeep
+temp/*
+!temp/.gitkeep
+
+# Modelos Whisper locais
+models/
+*.pt
+*.bin
+
+# Logs e IDE
+*.log
+.vscode/
+.idea/
+a_sombra_da_origem_o_teste_cruel_da_persistência_h_16x9TEMP_MPY_wvf_snd.mp4
+a_cidade_submersa_na_amazônia_que_o_governo_escond_16x9TEMP_MPY_wvf_snd.mp4
+o_teste_sombrio_como_sua_origem_se_curva_à_persist_16x9TEMP_MPY_wvf_snd.mp4
+database/darkai.db
+output/imagens/teste_unitario_banana.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_5.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_8.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_9.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_10.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_6.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_1.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_4.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_7.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_11.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_3.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_12.jpg
+output/imagens/5_ideias_proibidas_conhecimento_oculto_que_pode_mu_cena_7.jpg
+output/imagens/5_ideias_proibidas_conhecimento_oculto_que_pode_mu_cena_4.jpg
+output/imagens/a_cidade_submersa_na_amazônia_que_o_governo_escond_cena_2.jpg
+output/imagens/o_misterioso_farol_de_flannan_cena_1.jpg
+output/imagens/5_ideias_proibidas_conhecimento_oculto_que_pode_mu_cena_6.jpg
+output/imagens/teste_banana_sucesso.jpg
+output/imagens/5_ideias_proibidas_conhecimento_oculto_que_pode_mu_cena_3.jpg
+output/imagens/5_ideias_proibidas_conhecimento_oculto_que_pode_mu_cena_1.jpg
+output/imagens/teste_aspect_16x9.jpg
+output/imagens/teste_imagens_cena_1.jpg
+output/imagens/o_misterioso_farol_de_flannan_cena_2.jpg
+output/imagens/5_ideias_proibidas_conhecimento_oculto_que_pode_mu_cena_5.jpg
+output/imagens/teste_aspect_9x16.jpg
+output/imagens/5_ideias_proibidas_conhecimento_oculto_que_pode_mu_cena_2.jpg
+output/imagens/teste_imagens_cena_2.jpg
