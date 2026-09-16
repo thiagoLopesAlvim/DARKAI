@@ -1,0 +1,87 @@
+{
+  "titulo": "Guerra da Geladeira: A Herança do Bebê Pêra",
+  "genero": "Humor & Situações Absurdas / Nonsense",
+  "tema_central": "Discussão nonsense e dramática de herança de prateleiras da geladeira entre uma família de frutas 3D",
+  "hook_inicial": "EU NÃO VOU FICAR NO PRATINHO DE PLÁSTICO! EU QUERO A GAVETA DE VERDURAS!",
+  "personagens_ancora": [
+    {
+      "id": "bebe_pera",
+      "nome": "Bebê Pêra",
+      "descricao_visual": "Pêra bebê verde-amarelada hiper-expressiva, bochechas rosadas, fralda brilhante, olhos enormes brilhantes oscilando entre choro e raiva extrema, textura 3D glossy estilo Pixar.",
+      "prompt_imagem_ancora": "3D glossy character render of an angry cute baby pear wearing a small diaper, full body portrait, vertical 9:16 aspect ratio, studio lighting, vibrant yellow-green skin, dramatic crying expression, Pixar Dreamworks style, neutral soft background."
+    },
+    {
+      "id": "pai_coco",
+      "nome": "Pai Coco Durão",
+      "descricao_visual": "Coco maduro casca-dura, bigode grisalho rabugento, braços cruzados feitos de fibra de coco, olhar severo e inflexível, iluminação de estúdio 3D.",
+      "prompt_imagem_ancora": "3D glossy character render of a grumpy tough coconut father with a small gray mustache and bushy eyebrows, full body portrait, vertical 9:16 aspect ratio, rough coconut fiber texture, Pixar style, neutral background."
+    },
+    {
+      "id": "mae_maca",
+      "nome": "Mãe Maçã Dramática",
+      "descricao_visual": "Maçã vermelha reluzente e sofisticada, colar de pérolas, maquiagem sutil, lágrimas cintilantes nos olhos, pose dramática de novela.",
+      "prompt_imagem_ancora": "3D glossy character render of an elegant shiny red apple mother wearing a pearl necklace, full body portrait, vertical 9:16 aspect ratio, dramatic teary eyes, Pixar Dreamworks style, neutral background."
+    }
+  ],
+  "cenas": [
+    {
+      "numero": 1,
+      "duracao_segundos": 4.5,
+      "descricao_acao": "O Bebê Pêra está em cima da prateleira de vidro da geladeira tendo um ataque de pelanca, chorando e gritando com raiva.",
+      "personagens_presentes": [
+        "Bebê Pêra"
+      ],
+      "dialogo_fala": "Eu passei nove meses amadurecendo pra ficar no pratinho de plástico?! EU QUERO A GAVETA DE BAIXO!",
+      "prompt_imagem_cena": "Vertical 9:16 cinematic render, 3D glossy Pixar style, cute baby pear standing on a glass refrigerator shelf shouting hysterically with wide open mouth and tears flying, warm internal fridge lighting, soft blurred cold background.",
+      "prompt_animacao_flow": "Fast camera zoom-in towards the baby pear. The baby pear stomps its feet, waves hands in anger, tears splash from eyes, and mouth moves dynamically pronouncing: 'Eu passei nove meses amadurecendo pra ficar no pratinho de plástico?! EU QUERO A GAVETA DE BAIXO!'"
+    },
+    {
+      "numero": 2,
+      "duracao_segundos": 4.0,
+      "descricao_acao": "Corte rápido para o Pai Coco, olhando de cima para baixo com desdém e autoridade.",
+      "personagens_presentes": [
+        "Pai Coco Durão"
+      ],
+      "dialogo_fala": "Respeite minha casca dura, seu caroço! A gaveta de verduras é do seu irmão Brócolis!",
+      "prompt_imagem_cena": "Vertical 9:16 medium shot, 3D glossy Pixar style, grumpy coconut dad inside refrigerator looking down sternly, arms crossed, sharp details, cold white LED fridge light.",
+      "prompt_animacao_flow": "Subtle camera pan up. The coconut father shakes his head slowly in disapproval, brows furrowing deeper, lips moving firmly speaking: 'Respeite minha casca dura, seu caroço! A gaveta de verduras é do seu irmão Brócolis!'"
+    },
+    {
+      "numero": 3,
+      "duracao_segundos": 4.0,
+      "descricao_acao": "A Mãe Maçã intervém dramaticamente limpando uma lágrima com um lenço de papel minúsculo.",
+      "personagens_presentes": [
+        "Mãe Maçã Dramática"
+      ],
+      "dialogo_fala": "Calma meu Coquinho... Pense nas nossas vitaminas! Não estrague o suco da família!",
+      "prompt_imagem_cena": "Vertical 9:16 close-up shot, 3D glossy Pixar style, beautiful shiny red apple mother weeping dramatically holding a tiny tissue, glowing fridge lights, shallow depth of field.",
+      "prompt_animacao_flow": "Gentle camera roll in. The apple mother dabs her eye with a tissue, blinking rapidly with shiny tears, mouth moving emotionally saying: 'Calma meu Coquinho... Pense nas nossas vitaminas! Não estrague o suco da família!'"
+    },
+    {
+      "numero": 4,
+      "duracao_segundos": 4.5,
+      "descricao_acao": "O Bebê Pêra aponta para a porta da geladeira exigindo o andar superior com fúria cômica.",
+      "personagens_presentes": [
+        "Bebê Pêra"
+      ],
+      "dialogo_fala": "Então eu quero o congelador! Vou me transformar em sorvete e ninguém vai me parar!",
+      "prompt_imagem_cena": "Vertical 9:16 low angle shot, 3D glossy Pixar style, baby pear pointing finger upwards courageously, heroic lighting mixed with cold fridge mist, dramatic pose.",
+      "prompt_animacao_flow": "Dynamic low-angle camera tilt. Baby pear chest puffs out, pointing dramatically up, shouting furiously: 'Então eu quero o congelador! Vou me transformar em sorvete e ninguém vai me parar!'"
+    },
+    {
+      "numero": 5,
+      "duracao_segundos": 5.0,
+      "descricao_acao": "REVIRAVOLTA: Uma mão humana gigante abre a geladeira e pega o Bebê Pêra e os pais de uma vez só para fazer um smoothie.",
+      "personagens_presentes": [
+        "Bebê Pêra",
+        "Pai Coco Durão",
+        "Mãe Maçã Dramática"
+      ],
+      "dialogo_fala": "PERA AÍ... O QUÊ?! NÃAAAAO, O LIQUIDIFICADOR NÃO!",
+      "prompt_imagem_cena": "Vertical 9:16 wide shot, giant realistic human hand reaching into the brightly lit refrigerator grabbing the baby pear, coconut dad, and apple mom all together, shocked funny faces on all fruits.",
+      "prompt_animacao_flow": "Fast camera pull-back as giant hand scoops up all three fruit characters. Fruits sway back and forth in terror, eyes wide open, mouths screaming in unison: 'PERA AÍ... O QUÊ?! NÃAAAAO, O LIQUIDIFICADOR NÃO!'"
+    }
+  ],
+  "cta_final": "Qual fruta você salvaria da geladeira? Comente agora e siga para o Episódio 2!",
+  "sugestao_trilha": "Trilha de ópera cômica italiana super acelerada (estilo Barbeiro de Sevilha) misturada com efeitos sonoros de desenho animado clássico."
+}

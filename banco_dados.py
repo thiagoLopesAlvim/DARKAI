@@ -264,7 +264,37 @@ def listar_pautas_historico(limite: int = 20) -> List[Dict[str, Any]]:
         return [dict(r) for r in cursor.fetchall()]
 
 
+def salvar_curto_historico(dados: Dict[str, Any]) -> int:
+    """Salva um vídeo curto montado na tabela de histórico."""
+    dados_padronizados = {
+        "tema": dados.get("tema", dados.get("titulo", "Vídeo Curto")),
+        "titulo": dados.get("titulo", "Vídeo Curto"),
+        "descricao": dados.get("descricao", "Short montado via Módulo Vídeos Curtos"),
+        "tags": dados.get("tags", "shorts,viral,tiktok"),
+        "duracao_segundos": dados.get("duracao_segundos", 0.0),
+        "aspect_ratio": "9:16",
+        "voz_tipo": "flow",
+        "qtd_cenas": dados.get("qtd_cenas", 0),
+        "caminho_video": dados.get("caminho_video", ""),
+        "caminho_audio": "",
+        "caminho_roteiro": dados.get("caminho_roteiro", ""),
+        "tamanho_mb": dados.get("tamanho_mb", 0.0),
+        "is_short": 1
+    }
+    return salvar_video_historico(dados_padronizados)
+
+
+def listar_curtos_historico(limite: int = 50) -> List[Dict[str, Any]]:
+    """Lista todos os vídeos curtos gerados no banco."""
+    inicializar_banco()
+    with obter_conexao() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM videos_historico WHERE is_short = 1 ORDER BY id DESC LIMIT ?", (limite,))
+        return [dict(r) for r in cursor.fetchall()]
+
+
 if __name__ == "__main__":
     inicializar_banco()
     print("Banco SQLite inicializado em:", CAMINHO_BANCO)
     print("Métricas atuais:", obter_metricas_gerais())
+

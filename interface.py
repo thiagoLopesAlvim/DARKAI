@@ -23,6 +23,8 @@ from gerador_roteiro import sanitizar_nome_arquivo, gerar_perguntas_aprofundamen
 from editor_video import detectar_aceleracao_gpu
 from gerador_imagens import ESTILOS_VISUAIS, extrair_biblia_visual, gerar_imagem_cena_individual
 from radar_youtube import obter_nichos_dark, pesquisar_pautas_virais
+import modulo_curtos_roteiro as curtos_roteiro
+import modulo_curtos_assembler as curtos_assembler
 
 # Configuração da página Streamlit
 st.set_page_config(
@@ -113,6 +115,12 @@ if "perfil_canal" not in st.session_state:
     st.session_state.perfil_canal = banco_dados.obter_perfil_canal()
 if "pautas_radar" not in st.session_state:
     st.session_state.pautas_radar = []
+if "roteiro_curto" not in st.session_state:
+    st.session_state.roteiro_curto = None
+if "resultado_assembler" not in st.session_state:
+    st.session_state.resultado_assembler = None
+if "modulo_principal" not in st.session_state:
+    st.session_state.modulo_principal = "longos"
 
 esta_rodando = (st.session_state.status == "running")
 
@@ -176,8 +184,26 @@ def modal_aprofundar_conteudo(tema_atual: str, duracao_atual: float):
 # SIDEBAR: CONFIGURAÇÕES E CREDENCIAIS
 # =====================================================================
 with st.sidebar:
+    st.markdown("### 🧭 Modo de Produção")
+    opcoes_mod = [
+        "📽️ VÍDEOS LONGOS (Canal Dark 16:9)",
+        "⚡ VÍDEOS CURTOS (Flow & Multi-Nicho 9:16)"
+    ]
+    idx_mod = 0 if st.session_state.get("modulo_principal", "longos") == "longos" else 1
+    modulo_selecionado = st.radio(
+        "Selecione o Módulo Ativo:",
+        options=opcoes_mod,
+        index=idx_mod,
+        key="radio_modulo_principal"
+    )
+    st.session_state.modulo_principal = "longos" if "LONGOS" in modulo_selecionado else "curtos"
+    st.divider()
+
     st.markdown("### ⚙️ Painel de Controle")
-    st.markdown("<div class='phase-badge'>FASES 1 & 2 ATIVAS</div>", unsafe_allow_html=True)
+    if st.session_state.modulo_principal == "longos":
+        st.markdown("<div class='phase-badge'>VÍDEOS LONGOS 16:9</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='phase-badge' style='border-color:#a855f7;color:#c084fc;'>VÍDEOS CURTOS 9:16 (FLOW)</div>", unsafe_allow_html=True)
 
     # Status das Chaves
     gemini_key_env = os.getenv("GEMINI_API_KEY", "").strip()
@@ -194,179 +220,197 @@ with st.sidebar:
         st.markdown("🟡 **Aceleração GPU:** Modo CPU (`libx264`)")
 
     if gemini_key_env and "sua_chave" not in gemini_key_env.lower():
-        st.markdown("🟢 **Gemini API:** Ativa (Roteiro & Nano Banana)")
+        st.markdown("🟢 **Gemini API:** Ativa")
     else:
         st.markdown("🟡 **Gemini API:** Mock/Contingência")
 
-    if eleven_key_env and "sua_chave" not in eleven_key_env.lower():
-        st.markdown("🟢 **ElevenLabs:** Configurada")
-    else:
-        st.markdown("🟡 **ElevenLabs:** Voz Local/SAPI")
-
-    if tem_youtube_secrets:
-        st.markdown("🟢 **YouTube OAuth:** `client_secrets.json` detectado")
-    else:
-        st.markdown("🟡 **YouTube OAuth:** Modo Validação/Simulado")
-
-    st.divider()
-
-    # Configurações de IA e Imagens
-    st.markdown("#### Parâmetros da Produção")
-    provedor_img = st.selectbox(
-        "Gerador de Imagens com IA",
-        options=["pollinations", "gemini"],
-        format_func=lambda x: "⚡ Pollinations AI (Flux - Gratuito & 8K)" if x == "pollinations" else "🍌 Google Gemini (Nano Banana)",
-        index=0 if st.session_state.get("provedor_imagem", "pollinations") == "pollinations" else 1,
-        disabled=esta_rodando
-    )
-    if provedor_img != st.session_state.get("provedor_imagem"):
-        st.session_state.provedor_imagem = provedor_img
-        estado.definir_dados(provedor_imagem=provedor_img)
-
-    estilos_keys = list(ESTILOS_VISUAIS.keys())
-    idx_estilo = estilos_keys.index(st.session_state.get("estilo_visual", "dark_cinematic")) if st.session_state.get("estilo_visual") in estilos_keys else 0
-    estilo_selecionado = st.selectbox(
-        "Estilo Visual das Imagens",
-        options=estilos_keys,
-        format_func=lambda k: f"{ESTILOS_VISUAIS[k]['emoji']} {ESTILOS_VISUAIS[k]['nome']}",
-        index=idx_estilo,
-        disabled=esta_rodando
-    )
-    if estilo_selecionado != st.session_state.get("estilo_visual"):
-        st.session_state.estilo_visual = estilo_selecionado
-        estado.definir_dados(estilo_visual=estilo_selecionado)
-
-    formato_video = st.selectbox(
-        "Formato do Vídeo",
-        options=["16:9", "9:16"],
-        index=0,
-        disabled=esta_rodando,
-        help="16:9 (Horizontal / Padrão YouTube) ou 9:16 (Vertical / Shorts & Reels)."
-    )
-
-    whisper_model = st.selectbox(
-        "Modelo Whisper",
-        options=["base", "tiny", "small"],
-        index=0,
-        disabled=esta_rodando,
-        help="'base' oferece alta acurácia para narrações em português."
-    )
-
-    modo_sync_rapido = st.checkbox(
-        "Sincronização Rápida (Fallback proporcional)",
-        value=False,
-        disabled=esta_rodando,
-        help="Calcula marcações instantaneamente sem rodar o Whisper local."
-    )
-
-    st.divider()
-
-    # Aceleração por Hardware (NVENC / GPU)
-    st.markdown("#### ⚡ Aceleração por Hardware")
-    if tem_gpu:
-        modo_encoder = st.selectbox(
-            "Motor de Renderização",
-            options=["nvenc", "cpu"],
-            format_func=lambda x: f"⚡ NVIDIA NVENC ({gpu_status.get('gpu_nome', 'GPU')}) [ATIVADO]" if x == "nvenc" else "🐌 CPU (libx264 - Lento)",
-            index=0 if st.session_state.get("modo_encoder", "nvenc") == "nvenc" else 1,
-            disabled=esta_rodando,
-            help="NVIDIA NVENC utiliza os chips dedicados da sua RTX 3070 Ti para renderizar vídeos 1080p em ~15 a 30 segundos em vez de 25 minutos!"
-        )
-        st.session_state.modo_encoder = modo_encoder
-        forcar_cpu_modo = (modo_encoder == "cpu")
-        if not forcar_cpu_modo:
-            st.success(f"🟢 **NVENC ATIVADO** | Hardware: `{gpu_status.get('gpu_nome', 'NVIDIA GPU')}`")
+    if st.session_state.modulo_principal == "longos":
+        if eleven_key_env and "sua_chave" not in eleven_key_env.lower():
+            st.markdown("🟢 **ElevenLabs:** Configurada")
         else:
-            st.warning("⚠️ Modo CPU selecionado (Renderização por software lenta)")
-    else:
-        st.selectbox(
-            "Motor de Renderização",
-            options=["cpu"],
-            format_func=lambda x: "🐌 CPU (libx264 - GPU indisponível)",
-            index=0,
-            disabled=True
-        )
-        st.session_state.modo_encoder = "cpu"
-        forcar_cpu_modo = True
-        st.info("ℹ️ Renderização será processada via CPU.")
+            st.markdown("🟡 **ElevenLabs:** Voz Local/SAPI")
 
-    # Efeito Flow Motion (Animação estilo Google Flow / Ken Burns)
-    flow_motion_ativo = st.toggle(
-        "🎬 Flow Motion (Animação de Câmera)",
-        value=st.session_state.get("flow_motion_ativo", True),
-        disabled=esta_rodando,
-        help="Aplica zoom e pan cinematográficos dinâmicos nas imagens estilo Google Flow/Vids. Evita fotos estáticas e turbina a retenção no YouTube e TikTok!"
-    )
-    if flow_motion_ativo != st.session_state.get("flow_motion_ativo"):
-        st.session_state.flow_motion_ativo = flow_motion_ativo
-        estado.definir_dados(flow_motion_ativo=flow_motion_ativo)
+        if tem_youtube_secrets:
+            st.markdown("🟢 **YouTube OAuth:** `client_secrets.json` detectado")
+        else:
+            st.markdown("🟡 **YouTube OAuth:** Modo Validação/Simulado")
 
-    # Transições Suaves entre Cenas (Crossfade/Xfade)
-    transicao_ativa = st.toggle(
-        "✨ Transições Suaves entre Cenas",
-        value=st.session_state.get("transicao_ativa", True),
-        disabled=esta_rodando,
-        help="Aplica transições dissolve/fade entre cenas em vez de cortes secos. Eleva a qualidade cinematográfica do vídeo!"
-    )
-    st.session_state.transicao_ativa = transicao_ativa
-    if transicao_ativa:
-        col_tr1, col_tr2 = st.columns([1, 1])
-        with col_tr1:
-            transicao_duracao = st.slider(
-                "Duração (s):",
-                min_value=0.3, max_value=1.5, value=0.5, step=0.1,
-                disabled=esta_rodando,
-                label_visibility="collapsed"
-            )
-        with col_tr2:
-            transicao_tipo = st.selectbox(
-                "Tipo:",
-                options=["fade", "dissolve", "wipeleft", "slideright", "smoothleft", "circlecrop"],
-                index=0,
-                disabled=esta_rodando,
-                label_visibility="collapsed"
-            )
-        st.session_state.transicao_duracao = transicao_duracao
-        st.session_state.transicao_tipo = transicao_tipo
-    else:
-        st.session_state.transicao_duracao = 0.0
-        st.session_state.transicao_tipo = "fade"
+    st.divider()
 
-    # Trilha Sonora de Fundo (BGM)
-    bgm_ativo = st.toggle(
-        "🎵 Trilha Sonora de Fundo (BGM)",
-        value=st.session_state.get("bgm_ativo", False),
-        disabled=esta_rodando,
-        help="Adiciona música de fundo em volume baixo (-18dB) sob a narração. Escolha automática por IA ou manual."
-    )
-    st.session_state.bgm_ativo = bgm_ativo
-    if bgm_ativo:
-        bgm_modo = st.selectbox(
-            "Trilha BGM:",
-            options=["auto", "suspense", "epico", "misterioso", "tecnologico", "calmo", "dramatico", "nenhuma"],
-            format_func=lambda x: {
-                "auto": "🤖 Automático (IA escolhe)",
-                "suspense": "🎭 Suspense Cinematográfico",
-                "epico": "⚔️ Épico / Grandioso",
-                "misterioso": "🌙 Misterioso / Dark Ambient",
-                "tecnologico": "💻 Tecnológico / Futurista",
-                "calmo": "🌊 Calmo / Contemplativo",
-                "dramatico": "🎬 Dramático / Emotivo",
-                "nenhuma": "🔇 Sem trilha"
-            }.get(x, x),
-            index=0,
+    if st.session_state.modulo_principal == "longos":
+        # Configurações de IA e Imagens
+        st.markdown("#### Parâmetros da Produção")
+        provedor_img = st.selectbox(
+            "Gerador de Imagens com IA",
+            options=["pollinations", "gemini"],
+            format_func=lambda x: "⚡ Pollinations AI (Flux - Gratuito & 8K)" if x == "pollinations" else "🍌 Google Gemini (Nano Banana)",
+            index=0 if st.session_state.get("provedor_imagem", "pollinations") == "pollinations" else 1,
             disabled=esta_rodando
         )
-        st.session_state.bgm_modo = bgm_modo
+        if provedor_img != st.session_state.get("provedor_imagem"):
+            st.session_state.provedor_imagem = provedor_img
+            estado.definir_dados(provedor_imagem=provedor_img)
 
-    # Thumbnail Automática
-    thumbnail_ativa = st.toggle(
-        "🖼️ Gerar Thumbnail Automática",
-        value=st.session_state.get("thumbnail_ativa", True),
-        disabled=esta_rodando,
-        help="Gera thumbnail de alta conversão (1280x720) com texto impactante sobre a melhor imagem do roteiro."
-    )
-    st.session_state.thumbnail_ativa = thumbnail_ativa
+        estilos_keys = list(ESTILOS_VISUAIS.keys())
+        idx_estilo = estilos_keys.index(st.session_state.get("estilo_visual", "dark_cinematic")) if st.session_state.get("estilo_visual") in estilos_keys else 0
+        estilo_selecionado = st.selectbox(
+            "Estilo Visual das Imagens",
+            options=estilos_keys,
+            format_func=lambda k: f"{ESTILOS_VISUAIS[k]['emoji']} {ESTILOS_VISUAIS[k]['nome']}",
+            index=idx_estilo,
+            disabled=esta_rodando
+        )
+        if estilo_selecionado != st.session_state.get("estilo_visual"):
+            st.session_state.estilo_visual = estilo_selecionado
+            estado.definir_dados(estilo_visual=estilo_selecionado)
+
+        formato_video = st.selectbox(
+            "Formato do Vídeo",
+            options=["16:9", "9:16"],
+            index=0,
+            disabled=esta_rodando,
+            help="16:9 (Horizontal / Padrão YouTube) ou 9:16 (Vertical / Shorts & Reels)."
+        )
+
+        whisper_model = st.selectbox(
+            "Modelo Whisper",
+            options=["base", "tiny", "small"],
+            index=0,
+            disabled=esta_rodando,
+            help="'base' oferece alta acurácia para narrações em português."
+        )
+
+        modo_sync_rapido = st.checkbox(
+            "Sincronização Rápida (Fallback proporcional)",
+            value=False,
+            disabled=esta_rodando,
+            help="Calcula marcações instantaneamente sem rodar o Whisper local."
+        )
+
+        st.divider()
+
+        # Aceleração por Hardware (NVENC / GPU)
+        st.markdown("#### ⚡ Aceleração por Hardware")
+        if tem_gpu:
+            modo_encoder = st.selectbox(
+                "Motor de Renderização",
+                options=["nvenc", "cpu"],
+                format_func=lambda x: f"⚡ NVIDIA NVENC ({gpu_status.get('gpu_nome', 'GPU')}) [ATIVADO]" if x == "nvenc" else "🐌 CPU (libx264 - Lento)",
+                index=0 if st.session_state.get("modo_encoder", "nvenc") == "nvenc" else 1,
+                disabled=esta_rodando,
+                help="NVIDIA NVENC utiliza os chips dedicados da sua RTX 3070 Ti para renderizar vídeos 1080p em ~15 a 30 segundos em vez de 25 minutos!"
+            )
+            st.session_state.modo_encoder = modo_encoder
+            forcar_cpu_modo = (modo_encoder == "cpu")
+            if not forcar_cpu_modo:
+                st.success(f"🟢 **NVENC ATIVADO** | Hardware: `{gpu_status.get('gpu_nome', 'NVIDIA GPU')}`")
+            else:
+                st.warning("⚠️ Modo CPU selecionado (Renderização por software lenta)")
+        else:
+            st.selectbox(
+                "Motor de Renderização",
+                options=["cpu"],
+                format_func=lambda x: "🐌 CPU (libx264 - GPU indisponível)",
+                index=0,
+                disabled=True
+            )
+            st.session_state.modo_encoder = "cpu"
+            forcar_cpu_modo = True
+            st.info("ℹ️ Renderização será processada via CPU.")
+
+        # Efeito Flow Motion (Animação estilo Google Flow / Ken Burns)
+        flow_motion_ativo = st.toggle(
+            "🎬 Flow Motion (Animação de Câmera)",
+            value=st.session_state.get("flow_motion_ativo", True),
+            disabled=esta_rodando,
+            help="Aplica zoom e pan cinematográficos dinâmicos nas imagens estilo Google Flow/Vids. Evita fotos estáticas e turbina a retenção no YouTube e TikTok!"
+        )
+        if flow_motion_ativo != st.session_state.get("flow_motion_ativo"):
+            st.session_state.flow_motion_ativo = flow_motion_ativo
+            estado.definir_dados(flow_motion_ativo=flow_motion_ativo)
+
+        # Transições Suaves entre Cenas (Crossfade/Xfade)
+        transicao_ativa = st.toggle(
+            "✨ Transições Suaves entre Cenas",
+            value=st.session_state.get("transicao_ativa", True),
+            disabled=esta_rodando,
+            help="Aplica transições dissolve/fade entre cenas em vez de cortes secos. Eleva a qualidade cinematográfica do vídeo!"
+        )
+        st.session_state.transicao_ativa = transicao_ativa
+        if transicao_ativa:
+            col_tr1, col_tr2 = st.columns([1, 1])
+            with col_tr1:
+                transicao_duracao = st.slider(
+                    "Duração (s):",
+                    min_value=0.3, max_value=1.5, value=0.5, step=0.1,
+                    disabled=esta_rodando,
+                    label_visibility="collapsed"
+                )
+            with col_tr2:
+                transicao_tipo = st.selectbox(
+                    "Tipo:",
+                    options=["fade", "dissolve", "wipeleft", "slideright", "smoothleft", "circlecrop"],
+                    index=0,
+                    disabled=esta_rodando,
+                    label_visibility="collapsed"
+                )
+            st.session_state.transicao_duracao = transicao_duracao
+            st.session_state.transicao_tipo = transicao_tipo
+        else:
+            st.session_state.transicao_duracao = 0.0
+            st.session_state.transicao_tipo = "fade"
+
+        # Trilha Sonora de Fundo (BGM)
+        bgm_ativo = st.toggle(
+            "🎵 Trilha Sonora de Fundo (BGM)",
+            value=st.session_state.get("bgm_ativo", False),
+            disabled=esta_rodando,
+            help="Adiciona música de fundo em volume baixo (-18dB) sob a narração. Escolha automática por IA ou manual."
+        )
+        st.session_state.bgm_ativo = bgm_ativo
+        if bgm_ativo:
+            bgm_modo = st.selectbox(
+                "Trilha BGM:",
+                options=["auto", "suspense", "epico", "misterioso", "tecnologico", "calmo", "dramatico", "nenhuma"],
+                format_func=lambda x: {
+                    "auto": "🤖 Automático (IA escolhe)",
+                    "suspense": "🎭 Suspense Cinematográfico",
+                    "epico": "⚔️ Épico / Grandioso",
+                    "misterioso": "🕵️ Mistério & Conspiração",
+                    "tecnologico": "💻 Tecnológico / Cyber",
+                    "calmo": "🍃 Calmo / Reflexivo",
+                    "dramatico": "🎻 Dramático / Emocionante",
+                    "nenhuma": "🚫 Sem trilha de fundo"
+                }.get(x, x),
+                index=0,
+                disabled=esta_rodando
+            )
+            st.session_state.bgm_modo = bgm_modo
+
+        # Thumbnail Automática
+        thumbnail_ativa = st.toggle(
+            "🖼️ Gerar Thumbnail Automática",
+            value=st.session_state.get("thumbnail_ativa", True),
+            disabled=esta_rodando,
+            help="Gera thumbnail de alta conversão (1280x720) com texto impactante sobre a melhor imagem do roteiro."
+        )
+        st.session_state.thumbnail_ativa = thumbnail_ativa
+    else:
+        # Fallbacks e Guia do Modo Vídeos Curtos
+        provedor_img = "pollinations"
+        formato_video = "9:16"
+        whisper_model = "base"
+        modo_sync_rapido = False
+        flow_motion_ativo = True
+        forcar_cpu_modo = False
+        st.markdown("#### ⚡ Metodologia Flow (Vídeos Curtos)")
+        st.markdown("""
+        1. **Gerar Roteiro**: Defina qualquer nicho ou tema e gere o roteiro com Hook inicial (0-3s).
+        2. **Imagens 9:16**: Copie os prompts de cada personagem e cena para o [Google Flow](https://labs.google/flow).
+        3. **Animar no Flow**: Use Image-to-Video no Flow com o prompt de animação e diálogo.
+        4. **Juntar Clipes**: Baixe os MP4 e importe na Aba 2 para montar seu vídeo em segundos!
+        """)
+        st.link_button("🌐 Abrir Google Flow", "https://labs.google/flow", use_container_width=True)
 
     st.divider()
 
@@ -397,8 +441,367 @@ with st.sidebar:
 
 
 # =====================================================================
+# MÓDULO DE VÍDEOS CURTOS (FLOW & MULTI-NICHO 9:16)
+# =====================================================================
+def renderizar_modulo_videos_curtos():
+    st.markdown("<div class='main-title'>DarkAI Shorts Studio</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sub-title'>Produção de Vídeos Curtos Virais Multi-Nicho (9:16) com Google Flow & Montagem Automatizada</div>", unsafe_allow_html=True)
+
+    tab_c1, tab_c2, tab_c3 = st.tabs([
+        "💡 1. Roteiro & Prompts Flow",
+        "🎬 2. Junção de Clipes (Assembler)",
+        "📱 3. Galeria de Shorts"
+    ])
+
+    # -----------------------------------------------------------------
+    # ABA 1: ROTEIRO & PROMPTS FLOW
+    # -----------------------------------------------------------------
+    with tab_c1:
+        st.markdown("#### 💡 Gerador de Roteiros e Prompts para o Google Flow")
+        st.info(
+            "📌 **Metodologia Flow Multi-Nicho**: "
+            "1. Gere o roteiro com **Hook de retenção (0-3s)** e sem limites de gênero. "
+            "2. Copie os prompts das **Imagens Âncora (9:16)** para manter a consistência no [Google Flow](https://labs.google/flow). "
+            "3. No Flow, use **Image-to-Video** com os prompts de animação e falas. "
+            "4. Acesse a **Aba 2** para fazer a junção automatizada de tudo!"
+        )
+
+        col_g1, col_g2 = st.columns([2, 1])
+        with col_g1:
+            generos = curtos_roteiro.GENEROS_CURTOS
+            gen_chaves = list(generos.keys())
+            gen_sel = st.selectbox(
+                "Gênero / Linha Criativa:",
+                options=gen_chaves,
+                format_func=lambda k: f"{generos[k]['emoji']} {generos[k]['nome']}",
+                help="Liberdade total para qualquer nicho, gênero ou ideia criativa."
+            )
+            st.caption(f"ℹ️ *{generos[gen_sel]['descricao']}*")
+        with col_g2:
+            qtd_cenas = st.slider("Qtd de Cenas (3s a 6s cada):", min_value=3, max_value=8, value=5)
+
+        tema_curto = st.text_input(
+            "Tema ou Ideia Central (Qualquer Nicho):",
+            value=st.session_state.get("tema_curto_input", ""),
+            placeholder="Ex: Bebê pera e pais frutas discutindo a herança da geladeira com humor nonsense..."
+        )
+
+        with st.expander("🛠️ Instruções Adicionais ou Detalhes dos Personagens (Opcional)", expanded=False):
+            instrucoes_extras = st.text_area(
+                "Detalhes específicos:",
+                placeholder="Ex: O bebê deve ter voz de choro misturada com raiva, o pai é um coco durão, reviravolta no final..."
+            )
+
+        col_b1, col_b2 = st.columns([2, 1])
+        with col_b1:
+            if st.button("🚀 Gerar Roteiro Viral & Prompts Flow", type="primary", use_container_width=True):
+                if not tema_curto.strip():
+                    st.error("Informe um tema para o vídeo curto.")
+                else:
+                    with st.spinner("Criando roteiro, ganchos e prompts para o Flow com Gemini..."):
+                        try:
+                            roteiro = curtos_roteiro.gerar_roteiro_curto(
+                                tema=tema_curto.strip(),
+                                genero_id=gen_sel,
+                                instrucoes_extras=instrucoes_extras.strip() if instrucoes_extras else None,
+                                qtd_cenas=qtd_cenas
+                            )
+                            st.session_state.roteiro_curto = roteiro
+                            st.session_state.tema_curto_input = tema_curto
+                            st.success("Roteiro e prompts gerados com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao gerar roteiro: {e}")
+
+        with col_b2:
+            projetos_salvos = curtos_roteiro.listar_projetos_curtos_salvos()
+            if projetos_salvos:
+                proj_labels = [f"{p['titulo']} ({p['qtd_cenas']} cenas)" for p in projetos_salvos]
+                sel_proj = st.selectbox("Ou carregar roteiro salvo:", options=proj_labels, label_visibility="collapsed")
+                if st.button("📂 Carregar Roteiro", use_container_width=True):
+                    idx = proj_labels.index(sel_proj)
+                    caminho_p = projetos_salvos[idx]["caminho"]
+                    with open(caminho_p, "r", encoding="utf-8") as f:
+                        st.session_state.roteiro_curto = json.load(f)
+                    st.success(f"Projeto '{projetos_salvos[idx]['titulo']}' carregado!")
+                    st.rerun()
+
+        rot = st.session_state.get("roteiro_curto")
+        if rot:
+            st.divider()
+            col_t1, col_t2 = st.columns([3, 1])
+            with col_t1:
+                st.markdown(f"### 🎬 {rot.get('titulo', 'Vídeo Curto')}")
+                st.caption(f"Gênero: **{rot.get('genero')}** | CTA Final: *{rot.get('cta_final')}*")
+            with col_t2:
+                st.download_button(
+                    "📥 Baixar JSON do Roteiro",
+                    data=json.dumps(rot, ensure_ascii=False, indent=2),
+                    file_name=f"roteiro_{sanitizar_nome_arquivo(rot.get('titulo', 'curto'))}.json",
+                    mime="application/json",
+                    use_container_width=True
+                )
+
+            # CARD DO HOOK INICIAL (0 A 3 SEGUNDOS)
+            st.markdown(
+                f"""
+                <div style='background: linear-gradient(90deg, #3b0764, #1e1b4b); border: 2px solid #a855f7; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;'>
+                    <div style='color: #c084fc; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px;'>⚡ GANCHO INICIAL DE RETENÇÃO (0 A 3 SEGUNDOS)</div>
+                    <div style='color: #ffffff; font-size: 1.15rem; font-weight: 600; margin-top: 4px;'>{rot.get('hook_inicial', '')}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            # FICHAS DE PERSONAGENS ÂNCORA
+            personagens = rot.get("personagens_ancora", [])
+            if personagens:
+                st.markdown("##### 👥 Personagens Âncora (Consistência no Flow)")
+                st.caption("Gere a imagem de cada personagem em 9:16 com fundo isolado no Flow para manter a mesma identidade visual em todas as cenas:")
+                cols_pers = st.columns(min(len(personagens), 3))
+                for i, pers in enumerate(personagens):
+                    col_p = cols_pers[i % len(cols_pers)]
+                    with col_p:
+                        st.markdown(f"**{pers.get('nome')}**")
+                        st.caption(pers.get("descricao_visual"))
+                        st.code(pers.get("prompt_imagem_ancora"), language="text")
+
+            # CENAS SEQUENCIAIS
+            st.markdown("##### 🎞️ Cenas Sequenciais para o Flow")
+            cenas = rot.get("cenas", [])
+            for c in cenas:
+                num = c.get("numero", 1)
+                dur = c.get("duracao_segundos", 4.0)
+                with st.expander(f"🎬 Cena {num} (~{dur:.1f}s) — {c.get('descricao_acao')[:65]}...", expanded=(num == 1)):
+                    st.markdown(f"**Ação Visual:** {c.get('descricao_acao')}")
+                    if c.get("dialogo_fala"):
+                        st.markdown(f"🗣️ **Fala / Diálogo:** `{c.get('dialogo_fala')}`")
+                    st.markdown(f"**Personagens Presentes:** {', '.join(c.get('personagens_presentes', []))}")
+                    
+                    col_c1, col_c2 = st.columns(2)
+                    with col_c1:
+                        st.markdown("**1️⃣ Prompt de Imagem Base (9:16):**")
+                        st.caption("Cole no Flow (Nano Banana 2 / Flux) em 9:16:")
+                        st.code(c.get("prompt_imagem_cena"), language="text")
+                    with col_c2:
+                        st.markdown("**2️⃣ Prompt de Animação (Image-to-Video) + Diálogo:**")
+                        st.caption("Cole na aba de animação do Flow:")
+                        anim_prompt = f"{c.get('prompt_animacao_flow')}\n\n[DIALOGUE/VOICE]: {c.get('dialogo_fala')}" if c.get('dialogo_fala') else c.get('prompt_animacao_flow')
+                        st.code(anim_prompt, language="text")
+
+    # -----------------------------------------------------------------
+    # ABA 2: JUNÇÃO DE CLIPES (ASSEMBLER)
+    # -----------------------------------------------------------------
+    with tab_c2:
+        st.markdown("#### 🎬 Junção Automatizada dos Clipes do Flow")
+        st.caption(
+            "Você não precisa editar o vídeo manualmente! Baixe os clipes animados gerados no Flow para cada cena, "
+            "importe-os aqui e o DARKAI junta tudo com normalização de áudio, transições dinâmicas com som (swoosh/whoosh) e marca d'água em segundos."
+        )
+
+        col_m1, col_m2 = st.columns([1, 1])
+        with col_m1:
+            modo_entrada = st.radio(
+                "Origem dos Clipes:",
+                options=["📁 Upload direto de arquivos MP4", "📂 Apontar pasta no disco local"],
+                horizontal=True
+            )
+        with col_m2:
+            rot_atual = st.session_state.get("roteiro_curto") or {}
+            titulo_curto = st.text_input(
+                "Título do Vídeo Final:",
+                value=rot_atual.get("titulo", "short_viral_flow")
+            )
+
+
+        arquivos_clipes_usar = []
+
+        if "Upload" in modo_entrada:
+            uploads = st.file_uploader(
+                "Arraste e solte os vídeos das cenas (MP4):",
+                type=["mp4", "mov", "webm"],
+                accept_multiple_files=True,
+                help="Selecione os vídeos de cada cena gerados pelo Flow (ex: cena_1.mp4, cena_2.mp4...)"
+            )
+            if uploads:
+                pasta_up = os.path.join("temp", "curtos_uploads")
+                os.makedirs(pasta_up, exist_ok=True)
+                for up in uploads:
+                    caminho_salvo = os.path.join(pasta_up, up.name)
+                    with open(caminho_salvo, "wb") as f:
+                        f.write(up.getvalue())
+                    arquivos_clipes_usar.append(caminho_salvo)
+        else:
+            pasta_padrao = os.path.join("temp", "test_clips")
+            caminho_pasta = st.text_input("Caminho absoluto ou relativo da pasta:", value=pasta_padrao)
+            if os.path.exists(caminho_pasta):
+                for arq in os.listdir(caminho_pasta):
+                    if arq.lower().endswith((".mp4", ".mov", ".webm")):
+                        arquivos_clipes_usar.append(os.path.join(caminho_pasta, arq))
+
+        if arquivos_clipes_usar:
+            arquivos_clipes_usar = curtos_assembler.ordenar_arquivos_naturalmente(arquivos_clipes_usar)
+            st.success(f"✅ **{len(arquivos_clipes_usar)} clipes detectados e ordenados sequencialmente:**")
+            
+            cols_clp = st.columns(min(len(arquivos_clipes_usar), 4))
+            for idx, clp in enumerate(arquivos_clipes_usar):
+                c_col = cols_clp[idx % len(cols_clp)]
+                with c_col:
+                    dur_c = curtos_assembler.obter_duracao_video(clp)
+                    st.markdown(f"**Cena {idx+1}** (`{os.path.basename(clp)}`)")
+                    st.caption(f"Duração: {dur_c:.1f}s")
+
+            st.divider()
+            st.markdown("##### ⚙️ Parâmetros da Junção")
+            col_j1, col_j2, col_j3 = st.columns(3)
+            with col_j1:
+                trans_tipo = st.selectbox(
+                    "Tipo de Transição:",
+                    options=["crossfade", "slide_left", "corte_seco"],
+                    format_func=lambda x: {
+                        "crossfade": "✨ Crossfade (Dissolvência Suave)",
+                        "slide_left": "⬅️ Slide Lateral (Estilo CapCut)",
+                        "corte_seco": "✂️ Corte Seco (Instantâneo)"
+                    }[x]
+                )
+                trans_dur = st.slider("Duração da Transição:", min_value=0.2, max_value=0.6, value=0.3, step=0.05)
+            with col_j2:
+                sfx_tipo = st.selectbox(
+                    "Efeito Sonoro (SFX) na Transição:",
+                    options=["whoosh", "swoosh", "punch", "nenhum"],
+                    format_func=lambda x: {
+                        "whoosh": "💨 Whoosh Aerodinâmico",
+                        "swoosh": "🌊 Swoosh Rápido",
+                        "punch": "💥 Punch / Impacto",
+                        "nenhum": "🚫 Nenhum Som"
+                    }[x]
+                )
+                ganho_audio = st.slider("Ganho de Áudio das Falas (dB):", min_value=0.0, max_value=6.0, value=2.0, step=0.5)
+            with col_j3:
+                marca_dagua = st.text_input("Marca d'água (@perfil / TikTok):", value="@darkai_studio")
+                
+                trilhas_bgm = ["nenhuma"]
+                if os.path.exists("assets/bgm"):
+                    for b in os.listdir("assets/bgm"):
+                        if b.lower().endswith((".mp3", ".wav", ".m4a")):
+                            trilhas_bgm.append(b)
+                bgm_sel = st.selectbox("Música de Fundo Opcional:", options=trilhas_bgm)
+                bgm_caminho = os.path.join("assets", "bgm", bgm_sel) if bgm_sel != "nenhuma" else None
+
+            st.write("")
+            if st.button("⚡ Montar Vídeo Curto Final (9:16)", type="primary", use_container_width=True):
+                prog_bar = st.progress(0.0, text="Iniciando montagem...")
+                status_txt = st.empty()
+
+                def cb_montagem(p, m):
+                    prog_bar.progress(min(max(p, 0.0), 1.0), text=f"[{int(p*100)}%] {m}")
+
+                try:
+                    assembler = curtos_assembler.ShortsAssembler(callback_progresso=cb_montagem)
+                    resultado = assembler.montar_video_curto(
+                        lista_clipes=arquivos_clipes_usar,
+                        titulo_projeto=titulo_curto,
+                        tipo_transicao=trans_tipo,
+                        duracao_transicao=trans_dur,
+                        efeito_sonoro_transicao=sfx_tipo if sfx_tipo != "nenhum" else None,
+                        ganho_audio_db=ganho_audio,
+                        marca_dagua=marca_dagua.strip() if marca_dagua.strip() else None,
+                        trilha_bgm=bgm_caminho
+                    )
+                    banco_dados.salvar_curto_historico({
+                        "titulo": titulo_curto,
+                        "caminho_video": resultado["caminho_video"],
+                        "duracao_segundos": resultado["duracao_segundos"],
+                        "tamanho_mb": resultado["tamanho_mb"],
+                        "qtd_cenas": resultado["qtd_cenas"]
+                    })
+                    st.session_state.resultado_assembler = resultado
+                    st.success("🎉 Vídeo curto montado com sucesso!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Falha na montagem do vídeo: {e}")
+        else:
+            st.info("👆 Selecione ou faça upload dos clipes das cenas acima para iniciar a montagem.")
+
+        res_ass = st.session_state.get("resultado_assembler")
+        if res_ass and os.path.exists(res_ass.get("caminho_video", "")):
+            st.divider()
+            st.markdown("### 📱 Resultado Final do Vídeo Curto (9:16)")
+            col_v1, col_v2 = st.columns([1, 1])
+            with col_v1:
+                st.video(res_ass["caminho_video"])
+            with col_v2:
+                st.metric("Duração Total", f"{res_ass['duracao_segundos']:.1f}s")
+                st.metric("Tamanho do Arquivo", f"{res_ass['tamanho_mb']:.1f} MB")
+                st.metric("Cenas Unidas", f"{res_ass['qtd_cenas']} clipes")
+                st.markdown(f"📁 **Salvo em:** `{res_ass['caminho_video']}`")
+                
+                with open(res_ass["caminho_video"], "rb") as vf:
+                    st.download_button(
+                        "📥 Baixar Vídeo MP4 Pronto",
+                        data=vf.read(),
+                        file_name=os.path.basename(res_ass["caminho_video"]),
+                        mime="video/mp4",
+                        use_container_width=True
+                    )
+
+    # -----------------------------------------------------------------
+    # ABA 3: GALERIA DE SHORTS
+    # -----------------------------------------------------------------
+    with tab_c3:
+        st.markdown("#### 📱 Galeria de Vídeos Curtos Gerados")
+        shorts_banco = banco_dados.listar_curtos_historico(limite=50)
+
+        pasta_videos = os.path.join("output", "curtos", "videos")
+        videos_disco = []
+        if os.path.exists(pasta_videos):
+            for f in os.listdir(pasta_videos):
+                if f.endswith(".mp4"):
+                    videos_disco.append(os.path.join(pasta_videos, f))
+
+        if not shorts_banco and not videos_disco:
+            st.info("Nenhum vídeo curto produzido até o momento. Gere seu primeiro roteiro e monte os clipes!")
+        else:
+            if shorts_banco:
+                st.markdown("##### 📋 Histórico Registrado")
+                for sb in shorts_banco:
+                    with st.expander(f"🎬 {sb.get('titulo', 'Vídeo Curto')} ({sb.get('duracao_segundos', 0):.1f}s - {sb.get('criado_em', '')[:10]})"):
+                        c_video = sb.get("caminho_video", "")
+                        col_g1, col_g2 = st.columns([1, 2])
+                        with col_g1:
+                            if c_video and os.path.exists(c_video):
+                                st.video(c_video)
+                            else:
+                                st.caption(f"Arquivo não localizado em `{c_video}`")
+                        with col_g2:
+                            st.markdown(f"**Duração:** {sb.get('duracao_segundos', 0):.1f}s")
+                            st.markdown(f"**Tamanho:** {sb.get('tamanho_mb', 0):.1f} MB")
+                            st.markdown(f"**Cenas:** {sb.get('qtd_cenas', 0)}")
+                            st.markdown(f"**Arquivo:** `{c_video}`")
+                            if c_video and os.path.exists(c_video):
+                                with open(c_video, "rb") as vf:
+                                    st.download_button(
+                                        "📥 Baixar MP4",
+                                        data=vf.read(),
+                                        file_name=os.path.basename(c_video),
+                                        mime="video/mp4",
+                                        key=f"dl_sh_{sb['id']}"
+                                    )
+
+
+# =====================================================================
 # ÁREA PRINCIPAL
 # =====================================================================
+if st.session_state.modulo_principal == "curtos":
+    renderizar_modulo_videos_curtos()
+    st.divider()
+    with st.expander("📜 Logs de Execução em Tempo Real", expanded=False):
+        if st.session_state.logs:
+            st.code("\n".join(st.session_state.logs), language="bash")
+        else:
+            st.caption("Nenhum log no momento.")
+    st.stop()
+
 st.markdown("<div class='main-title'>DarkAI Studio</div>", unsafe_allow_html=True)
 st.markdown("<div class='sub-title'>Automação Completa de Canal Dark & Faceless: Roteiro, Voz com IA, Sincronização Precisa, Flow Motion e YouTube</div>", unsafe_allow_html=True)
 

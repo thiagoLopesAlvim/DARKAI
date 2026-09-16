@@ -1,0 +1,59 @@
+{
+  "titulo": "O Chef Salsicha Perde a Cabeça!",
+  "genero": "Humor & Situações Absurdas (Nonsense 3D)",
+  "tema_central": "Chef cachorro salsicha se estressa com pedido insano de cliente gato esnobe",
+  "hook_inicial": "VOCÊ PEDIU BEM PASSADO?! O Chef Salsicha surta nos primeiros 3 segundos!",
+  "personagens_ancora": [
+    {
+      "id": "chef_salsicha",
+      "nome": "Chef Salsicha",
+      "descricao_visual": "Um cachorro salsicha (Dachshund) marrom, corpo comicamente comprido, vestindo dólmã de chef e chapéu toque blanche alto. Olhos extremamente expressivos, bigodes finos e avental levemente sujo de molho. Estilo 3D Pixar glossy.",
+      "prompt_imagem_ancora": "Full body character portrait of a cute furious long Dachshund dog wearing a white chef uniform and tall toque blanche, glossy 3D Pixar style, vibrant studio lighting, neutral clean studio background, highly detailed fur, dramatic angry expression, 9:16 vertical orientation"
+    },
+    {
+      "id": "cliente_gato",
+      "nome": "Cliente Gato Esnobe",
+      "descricao_visual": "Gato persa branco felpudo, gordinho, usando pequenos óculos escuros redondos e paletó azul elegante. Expressão de desprezo e superioridade. Estilo 3D Dreamworks glossy.",
+      "prompt_imagem_ancora": "Full body character design of a pompous fluffy white Persian cat wearing tiny round black sunglasses and a tailored navy blue blazer, seated posture, glossy 3D animation style, clean neutral studio background, high detail, 9:16 vertical orientation"
+    }
+  ],
+  "cenas": [
+    {
+      "numero": 1,
+      "duracao_segundos": 4.5,
+      "descricao_acao": "O Chef Salsicha dá um soco na mesa e solta fumaça pelas orelhas ao ouvir o pedido absurdo.",
+      "personagens_presentes": [
+        "Chef Salsicha",
+        "Cliente Gato Esnobe"
+      ],
+      "dialogo_fala": "Como assim você quer o osso de Wagyu BEM PASSADO e sem osso?!",
+      "prompt_imagem_cena": "A furious Dachshund chef in white chef uniform slamming paws on a restaurant table, steam rising around him, expressive shock, high detail fine dining restaurant background, 3d glossy character Pixar style, vibrant warm lighting, 9:16 vertical format",
+      "prompt_animacao_flow": "Subtle fast camera zoom in, the Dachshund chef angrily slams his paws on the table, steam puffing out of ears, wide furious eyes blinking, mouth moving in sync with dialogue: 'Como assim você quer o osso de Wagyu BEM PASSADO e sem osso?!'"
+    },
+    {
+      "numero": 2,
+      "duracao_segundos": 5.0,
+      "descricao_acao": "O Gato arruma os óculos com total tédio e faz uma exigência ainda pior.",
+      "personagens_presentes": [
+        "Cliente Gato Esnobe"
+      ],
+      "dialogo_fala": "E substitua o sal por lágrimas de peixe. O cliente tem sempre razão, salsichão.",
+      "prompt_imagem_cena": "A snobbish fluffy white Persian cat in a blue suit sitting at a luxury restaurant table, adjusting tiny sunglasses with one paw, arrogant smirk, glossy 3D render style, warm bokeh restaurant background, 9:16 vertical aspect ratio",
+      "prompt_animacao_flow": "Slow camera pan towards the Persian cat, cat slowly adjusts sunglasses with one paw in slow-motion, smirking arrogantly, mouth animated to match dialogue: 'E substitua o sal por lágrimas de peixe. O cliente tem sempre razão, salsichão.'"
+    },
+    {
+      "numero": 3,
+      "duracao_segundos": 5.5,
+      "descricao_acao": "O Chef Salsicha se estica de forma absurda pela cozinha e serve uma linguiça gigante fumegante na cara do gato.",
+      "personagens_presentes": [
+        "Chef Salsicha",
+        "Cliente Gato Esnobe"
+      ],
+      "dialogo_fala": "Sua refeição EXCLUSIVA está servida! Bom apetite!",
+      "prompt_imagem_cena": "Comically stretched Dachshund chef extending across the kitchen scene, dramatically slamming a huge smoking sausage platter right in front of the shocked Persian cat, dynamic dramatic action pose, 3d glossy Pixar style, vibrant lighting, 9:16 vertical aspect ratio",
+      "prompt_animacao_flow": "Fast dynamic camera movement tracking the long dog body stretching across the room, slamming the silver platter with a giant sausage, smoke blowing into the cat's face, chef smiling maniacally, mouth moving to dialogue: 'Sua refeição EXCLUSIVA está servida! Bom apetite!'"
+    }
+  ],
+  "cta_final": "Qual a coisa mais absurda que já te pediram no trabalho? Comente e siga para a Parte 2!",
+  "sugestao_trilha": "Tarantella italiana bem rápida e cômica com efeitos sonoros cartoon de panela caindo e miado de gato."
+}
